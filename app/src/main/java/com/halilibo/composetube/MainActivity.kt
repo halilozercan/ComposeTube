@@ -1,129 +1,58 @@
 package com.halilibo.composetube
 
+import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.*
-import androidx.ui.core.Modifier
+import androidx.compose.Composable
+import androidx.compose.remember
+import androidx.ui.core.ContextAmbient
 import androidx.ui.core.setContent
-import androidx.ui.foundation.Text
-import androidx.ui.layout.Column
-import androidx.ui.layout.Row
-import androidx.ui.layout.Spacer
-import androidx.ui.layout.width
-import androidx.ui.material.Button
-import androidx.ui.unit.dp
+import androidx.ui.viewinterop.AndroidView
+import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.ui.PlayerView
+import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import com.google.android.exoplayer2.util.Util
 import com.halilibo.composetube.ui.ComposeTubeTheme
-import kotlinx.coroutines.delay
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             ComposeTubeTheme {
-                Demo()
+                VideoPlayer()
             }
         }
     }
 }
 
-// Simply put the Demo composable in a Compose tree and observe the logs
-// Focus on how dependency changes affect the recomposition.
-// How does Ambient work?
-// When basic callbacks fire: onCommit, launchInComposition, onActive, remember
 
 @Composable
-fun Demo() {
-    var textCounter by state { 0 }
+fun VideoPlayer() {
+    // This is the official way to access current context from Composable functions
+    val context = ContextAmbient.current
 
-    Column {
-        TestComposable("Counter: $textCounter")
+    // Do not recreate the player everytime this Composable commits
+    val exoPlayer = remember {
+        SimpleExoPlayer.Builder(context).build().apply {
+            val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(context,
+                Util.getUserAgent(context, context.packageName))
 
-        Button(onClick = { textCounter++ }) {
-            Text("Increase")
+            val source = ProgressiveMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(Uri.parse(
+                    // Big Buck Bunny from Blender Project
+                    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                ))
+
+            this.prepare(source)
         }
     }
-}
 
-val ProvidableCounterAmbient = ambientOf { "default" }
+    AndroidView(resId = R.layout.surface) {
+        val exoPlayerView = it.findViewById<PlayerView>(R.id.player_view)
 
-@Composable
-fun TestComposable(text: String) {
-    // only first commit
-    onActive {
-        Log.d("ComposeCallbacks", "onActive $text")
+        exoPlayerView.player = exoPlayer
+        exoPlayer.playWhenReady = true
     }
-
-    // When this composer commit each time
-    onCommit {
-        Log.d("ComposeCallbacks", "onCommit $text")
-    }
-
-    launchInComposition {
-        Log.d("ComposeCallbacks", "launched in composition")
-        delay(2000)
-        Log.d("ComposeCallbacks", "launched in composition after 2 seconds")
-    }
-
-    val textRemembered = remember { text }
-
-    Log.d("ComposeCallbacks", "onCompose remembered $textRemembered")
-
-
-    Providers(ProvidableCounterAmbient provides text) {
-        Row {
-            ShowTextAmbient()
-            Spacer(modifier = Modifier.width(16.dp))
-            ShowTextRegular(text)
-        }
-    }
-}
-
-@Composable
-fun ShowTextAmbient() {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextAmbient commits")
-    }
-    ShowTextAmbient2()
-}
-
-@Composable
-fun ShowTextAmbient2() {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextAmbient2 commits")
-    }
-    ShowTextAmbient3()
-}
-
-@Composable
-fun ShowTextAmbient3() {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextAmbient3 commits")
-    }
-    Text(ProvidableCounterAmbient.current)
-}
-
-
-@Composable
-fun ShowTextRegular(text: String) {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextRegular commits")
-    }
-    ShowTextRegular2(text)
-}
-
-@Composable
-fun ShowTextRegular2(text: String) {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextRegular2 commits")
-    }
-    ShowTextRegular3(text)
-}
-
-@Composable
-fun ShowTextRegular3(text: String) {
-    onCommit {
-        Log.d("ComposeCallbacks", "ShowTextRegular3 commits")
-    }
-    Text(text)
 }
