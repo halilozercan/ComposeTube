@@ -3,8 +3,11 @@ package com.halilibo.composetube
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.Composable
+import androidx.compose.state
 import androidx.ui.core.setContent
 import androidx.ui.foundation.Text
+import androidx.ui.layout.Column
+import androidx.ui.material.Button
 import androidx.ui.material.MaterialTheme
 import androidx.ui.material.Surface
 import androidx.ui.tooling.preview.Preview
@@ -15,9 +18,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposeTubeTheme {
-                // A surface container using the 'background' color from the theme
+
+                val (count, setCount) = state { 1 }
+
                 Surface(color = MaterialTheme.colors.background) {
-                    Greeting("Android")
+                    Column {
+                        Button(onClick = {
+                            setCount(count+1)
+                        }) {
+                            Text("Add")
+                        }
+                        (1..count).forEach {
+                            Greeting("Android")
+                        }
+                    }
                 }
             }
         }
